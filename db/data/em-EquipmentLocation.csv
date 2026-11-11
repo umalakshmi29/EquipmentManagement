@@ -1,0 +1,11 @@
+locationID,locationName,plantCode,floor,section,isActive
+LOC-001,CNC Production Area,PLT-001,Floor 1,Machining,true
+LOC-002,Hydraulic Press Area,PLT-001,Floor 1,Pressing,true
+LOC-003,Electrical Maintenance Area,PLT-001,Floor 2,Electrical,true
+LOC-004,Assembly Production Area,PLT-001,Floor 2,Assembly,true
+LOC-005,Generator Room,PLT-002,Ground Floor,Utilities,true
+LOC-006,Compressor Room,PLT-002,Ground Floor,Utilities,true
+LOC-007,Quality Inspection Area,PLT-002,Floor 1,Quality,true
+LOC-008,Old Storage Area,PLT-001,Basement,Storage,false
+LOC-009,Packaging Section,PLT-002,Floor 2,Packaging,true
+LOC-010,Robotics Production Area,PLT-001,Floor 3,Robotics,true
