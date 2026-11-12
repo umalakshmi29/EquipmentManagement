@@ -3,7 +3,11 @@ service EquipmentManagement{
     entity Equipment as projection on em.Equipment;
     entity EquipmentLocation as projection on em.EquipmentLocation;
     entity MaintenancePlan as projection on em.MaintenancePlan;
-    entity MaintenanceRequest as projection on em.MaintenanceRequest;
+    entity MaintenanceRequest as projection on em.MaintenanceRequest actions{
+        action ApproveRequest(ID:UUID);
+        action RejectRequest(ID:UUID);
+        action CanceleRequest(ID:UUID);
+    };
     entity WorkOrder as projection on em.WorkOrder;
     entity WorkOrderperation as projection on em.WorkOrderOperation;
     entity Technician as projection on em.Technician;

@@ -1,1 +1,7 @@
-ID,planID,planName,schedulingType,intervalValue,gracePeriod,isActive,equipment_ID
+planID,planName,schedulingType,intervalValue,gracePeriod,isActive
+PL-001,Monthly CNC Machine Maintenance,TIME_BASED,30,5,true
+PL-002,Quarterly Hydraulic Press Inspection,TIME_BASED,90,10,true
+PL-003,Generator Preventive Maintenance,TIME_BASED,180,15,true
+PL-004,Compressor Operating Hours Service,USAGE_BASED,500,50,true
+PL-005,Annual Robotics Inspection,TIME_BASED,365,15,true
+PL-006,Old Equipment Maintenance Plan,TIME_BASED,90,10,false

@@ -1,9 +1,8 @@
 namespace em;
 using {cuid} from '@sap/cds/common';
 
-
 entity Equipment: cuid{
-    equipmentID: String;
+    equipmentID: String @readonly;
     equipmentName: String;
     category: String;
     modelNumber: String;
@@ -39,9 +38,8 @@ entity EquipmentLocation: cuid{
     section: String;
     isActive: Boolean;
 }
-
 entity MaintenancePlan: cuid{
-    planID: String;
+    planID: String @readonly;
     planName: String;
     schedulingType: Schedule;
     intervalValue: Integer;
@@ -51,12 +49,13 @@ entity MaintenancePlan: cuid{
 }
 
 entity MaintenanceRequest: cuid{
-    requestID: String;
+    requestID: String @readonly;
     requestType: RequestType;
     priority: Criticality;
     safetyImpact: Boolean;
     productImpact: Criticality;
     requestStatus: RequestStatus;
+    equipment: Association to Equipment;
 }
 
 type Schedule: String enum{
@@ -72,10 +71,10 @@ type RequestType: String enum{
 
 type RequestStatus: String enum{
     SUBMITTED;
-    UNDER_REVIEW;
     APPROVED;
     REJECTED;
     CANCELLED;
+    CREATED;
 }
 
 entity WorkOrder: cuid{
@@ -91,6 +90,7 @@ entity WorkOrder: cuid{
     closedAt: Timestamp;
     planner: Association to Technician;
     equipment: Association to Equipment;
+    request: Association to MaintenanceRequest;
     operations : Composition of many WorkOrderOperation
                  on operations.workOrder = $self;
 
@@ -130,7 +130,11 @@ type OperationStatus: String enum{
 }
 
 entity Technician: cuid{
-    empCode: String;
+       @assert.unique: {
+        phone: [phone],
+        email: [email]
+    }
+    empCode: String @readonly;
     name: String;
     email: String;
     phone: String;

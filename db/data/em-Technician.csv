@@ -1,1 +1,9 @@
-ID,empCode,name,email,phone,availableStatus,skillLevel,specialization,isActive
+empCode,name,email,phone,availableStatus,skillLevel,specialization,isActive
+TECH-001,Arun Kumar,arun.kumar@company.com,9876543210,AVAILABLE,SENIOR,CNC Machine Maintenance,true
+TECH-002,Priya Sharma,priya.sharma@company.com,9876543211,BUSY,EXPERT,Electrical Maintenance,true
+TECH-003,Rahul Kumar,rahul.kumar@company.com,9876543212,AVAILABLE,INTERMEDIATE,Hydraulic Systems,true
+TECH-004,Suresh Raj,suresh.raj@company.com,9876543213,ON_LEAVE,SENIOR,Generator Maintenance,true
+TECH-005,Divya S,divya.s@company.com,9876543214,AVAILABLE,JUNIOR,Mechanical Maintenance,true
+TECH-006,Karthik M,karthik.m@company.com,9876543215,BUSY,INTERMEDIATE,Compressor Maintenance,true
+TECH-007,Vijay Kumar,vijay.kumar@company.com,9876543216,AVAILABLE,EXPERT,Robotics Maintenance,true
+TECH-008,Meena R,meena.r@company.com,9876543217,AVAILABLE,SENIOR,Instrumentation Maintenance,true
