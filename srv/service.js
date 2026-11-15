@@ -2,7 +2,7 @@ const cds = require('@sap/cds');
 const { SELECT, UPDATE } = require('@sap/cds/lib/ql/cds-ql');
 
 module.exports = cds.service.impl(async function () {
-    const { Equipment, EquipmentLocation, MaintenancePlan, MaintenanceRequest, Technician, WorkOrder } = this.entities;
+    const { Equipment, EquipmentLocation, MaintenancePlan, MaintenanceRequest, Technician, WorkOrder, WorkOrderOperation} = this.entities;
 
     //-------------------------------------------Equipment-------------------------------------------//
     this.before('CREATE', Equipment, async (req) => {
@@ -40,9 +40,7 @@ module.exports = cds.service.impl(async function () {
     this.before('UPDATE', Equipment, async (req) => {
         const equipmentID = req.data.ID || req.params?.[0]?.ID;
         const { equipmentName, category, modelNumber, critical, equipmentStatus, warrantyStart, warrantyEnd } = req.data;
-        if (!equipmentName || !category || !modelNumber || !critical || !equipmentStatus || !warrantyStart || !warrantyEnd) {
-            return req.error(400, 'Please Fill All The Mandatory Fields')
-        }
+     
         const equipment = await SELECT.one.from(Equipment)
             .where({ ID: equipmentID });
         if (!equipment) {
@@ -106,6 +104,9 @@ module.exports = cds.service.impl(async function () {
         }
         req.data.requestID = `REQ-${String(nextNumber).padStart(3, "0")}`;
 
+    });
+    
+    this.after('CREATE', MaintenanceRequest, async(req)=>{
         const equipment = req.data.equipment_ID;
         const equip = await SELECT.one.from(Equipment)
             .where({ equipmentID: equipment })
@@ -115,8 +116,7 @@ module.exports = cds.service.impl(async function () {
         await UPDATE(Equipment)
             .set({ equipmentStatus: 'INACTIVE' })
             .where({ equipmentID: equipment });
-    });
-
+    })
     //----------------------------Maintainenace Request - Approve Action ----------------//
     this.on('ApproveRequest', MaintenanceRequest, async (req) => {
         const { ID } = req.params[0];
@@ -127,11 +127,11 @@ module.exports = cds.service.impl(async function () {
         if (requestStatus !== 'SUBMITTED') {
             return req.error(400, 'Only Submitted Request can be Approved');
         }
-        await UPDATE(MaintenanceRequest).set({ requestStatus: 'APPPROVED' })
+        await UPDATE(MaintenanceRequest).set({ requestStatus: 'APPROVED' })
             .where({ ID });
     })
 
-    //--------------Reject---------//
+    //-----------------------------Reject-------------------------//
     this.on('RejectRequest', MaintenanceRequest, async (req) => {
         const { ID } = req.params[0];
         const request = await SELECT.one.from(MaintenanceRequest).where({ ID });
@@ -173,12 +173,12 @@ module.exports = cds.service.impl(async function () {
         if (req.data.phone && !/^\d{10}$/.test(req.data.phone)) {
             return req.error(400, 'Please enter a valid phone number');
         }
-        if (req.data.email && !/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(req.data.email)) {
+        if (req.data.email && !/^[a-zA-Z0-9._%+-]+@company\.com$/.test(req.data.email)) {
             return req.error(400, 'Please enter a valid email address');
         }
     });
 
-    // //----------------------------------Work Order----------------------//
+    //----------------------------------Work Order----------------------//
     this.before('CREATE', WorkOrder, async (req) => {
         const status = req.data.request_ID;
         const request = await SELECT.one.from(MaintenanceRequest)
@@ -201,13 +201,47 @@ module.exports = cds.service.impl(async function () {
             nextNumber = lastNumber + 1;
         }
         req.data.orderID = `ORD-${String(nextNumber).padStart(3, "0")}`;
+    });
 
-        const technician = req.data.planner_ID;
-        const planner = await SELECT.one.from(Technician)
-                                        .where({empCode:technician});
-        if(planner.availableStatus!=='AVAILABLE'){
-            return req.error(400,'The Technician is not available at the moment');
-        }
+    this.after('CREATE', WorkOrder, async(req)=>{
         await UPDATE(MaintenanceRequest).set({requestStatus: 'CREATED'}).where({requestID: status})
+    });
+
+     //--------------------WorkOrder- Approve-----------------//
+    this.on('ApproveWork', WorkOrder, async(req)=>{
+        const {ID} = req.params[0];
+        const work = await SELECT.one.from(WorkOrder)
+                                          .where({ID});
+        if(work.approvalStatus!=='PENDING'){
+            return req.error(400, 'Only pending work order can be Approved')
+        }
+        await UPDATE(WorkOrder).set({approvalStatus: 'APPROVED'}).where({ID})
     })
+ 
+     this.on('RejectWork', WorkOrder, async(req)=>{
+        const {ID} = req.params[0];
+        const work = await SELECT.one.from(WorkOrder)
+                                          .where({ID});
+        if(work.approvalStatus!=='PENDING'){
+            return req.error(400, 'Only pending work order can be Rejected')
+        }
+        await UPDATE(WorkOrder).set({approvalStatus: 'REJECTED'}).where({ID})
+    })
+
+ 
+
+    this.before('CREATE', WorkOrderOperation, async(req)=>{
+       const work = await SELECT.one.from(WorkOrderOperation)
+                                          .colums('operationID')
+                                          .orderBy('operationID desc');
+        let nextNumber = 1;
+        if(work?.operationID){
+            const lastNumber = parseInt(work.operationID.split("-")[1],10);
+            nextNumber = lastNumber + 1;
+        }
+        req.data.operationID = `OP-${String(nextNumber).padStart(3,"0")}`;
+        if(!req.data.planEnd< req.data.planStart){
+            return req.error(400, 'The Plan end cannot be before plan start')
+        }
+    });
 })

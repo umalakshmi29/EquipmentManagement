@@ -8,8 +8,12 @@ service EquipmentManagement{
         action RejectRequest(ID:UUID);
         action CanceleRequest(ID:UUID);
     };
-    entity WorkOrder as projection on em.WorkOrder;
-    entity WorkOrderperation as projection on em.WorkOrderOperation;
+    entity WorkOrder as projection on em.WorkOrder actions{
+        action ApproveWork(ID:UUID);
+        action RejectWork(ID:UUID);
+    };
+
+    entity WorkOrderOperation as projection on em.WorkOrderOperation;
     entity Technician as projection on em.Technician;
     entity TechnicianAssignment as projection on em.TechnicianAssignment;
     entity SparePart as projection on em.SparePart;

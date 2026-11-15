@@ -2,7 +2,7 @@ namespace em;
 using {cuid} from '@sap/cds/common';
 
 entity Equipment: cuid{
-    equipmentID: String @readonly;
+    equipmentID: String;
     equipmentName: String;
     category: String;
     modelNumber: String;
@@ -39,7 +39,7 @@ entity EquipmentLocation: cuid{
     isActive: Boolean;
 }
 entity MaintenancePlan: cuid{
-    planID: String @readonly;
+    planID: String;
     planName: String;
     schedulingType: Schedule;
     intervalValue: Integer;
@@ -49,7 +49,7 @@ entity MaintenancePlan: cuid{
 }
 
 entity MaintenanceRequest: cuid{
-    requestID: String @readonly;
+    requestID: String;
     requestType: RequestType;
     priority: Criticality;
     safetyImpact: Boolean;
@@ -65,7 +65,6 @@ type Schedule: String enum{
  
 type RequestType: String enum{
     BREAKDOWN;
-    CORRECTIVE;
     PREVENTIVE;
 }
 
@@ -88,7 +87,6 @@ entity WorkOrder: cuid{
     approvalStatus: Status;
     completedAt: Timestamp;
     closedAt: Timestamp;
-    planner: Association to Technician;
     equipment: Association to Equipment;
     request: Association to MaintenanceRequest;
     operations : Composition of many WorkOrderOperation
@@ -114,6 +112,7 @@ entity WorkOrderOperation: cuid{
     planEnd: Timestamp;
     findings: LargeString;
     workOrder: Association to WorkOrder;
+    technician: Association to Technician;
 }
 
 type OperationType: String enum{
@@ -129,12 +128,10 @@ type OperationStatus: String enum{
     SKIPPED;
 }
 
+annotate Technician with @assert.unique.phone: [ phone];
+annotate Technician with @assert.unique.email: [ email];
 entity Technician: cuid{
-       @assert.unique: {
-        phone: [phone],
-        email: [email]
-    }
-    empCode: String @readonly;
+    empCode: String;
     name: String;
     email: String;
     phone: String;
@@ -163,6 +160,8 @@ entity TechnicianAssignment: cuid{
     assignmentStatus: AssignmentStatus;
     remarks: String;
     technician: Association to Technician;
+    workOrder: Association to WorkOrder;
+    operation: Association to WorkOrderOperation;
 }
 
 type AssignmentStatus: String enum{
@@ -222,6 +221,7 @@ entity DowntimeEvent: cuid{
     duration: Decimal;
     reason: LargeString;
     impactLevel: Criticality;
+    equipment: Association to Equipment;
 }
 
 type DownType: String enum{
