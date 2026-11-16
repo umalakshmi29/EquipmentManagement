@@ -54,7 +54,9 @@ entity MaintenanceRequest: cuid{
     priority: Criticality;
     safetyImpact: Boolean;
     productImpact: Criticality;
-    requestStatus: RequestStatus;
+    // findinds: LargeString;
+    requestStatus: RequestStatus 
+                   default #SUBMITTED;
     equipment: Association to Equipment;
 }
 
@@ -72,8 +74,6 @@ type RequestStatus: String enum{
     SUBMITTED;
     APPROVED;
     REJECTED;
-    CANCELLED;
-    CREATED;
 }
 
 entity WorkOrder: cuid{
@@ -84,10 +84,9 @@ entity WorkOrder: cuid{
     actualHours: Decimal;
     estimatedCost: Decimal;
     actualCost: Decimal;
-    approvalStatus: Status;
+    approvalStatus: Status default #PENDING;
     completedAt: Timestamp;
     closedAt: Timestamp;
-    equipment: Association to Equipment;
     request: Association to MaintenanceRequest;
     operations : Composition of many WorkOrderOperation
                  on operations.workOrder = $self;
@@ -98,7 +97,7 @@ type Status: String enum{
     PENDING;
     APPROVED;
     REJECTED;
-    NOT_REQUIRED;
+    RELEASED;
 }
 
 entity WorkOrderOperation: cuid{
@@ -107,7 +106,7 @@ entity WorkOrderOperation: cuid{
     operationType: OperationType;
     plannedHours: Decimal;
     actualHours: Decimal;
-    operationStatus: OperationStatus;
+    operationStatus: OperationStatus default #PENDING;
     planStart: Timestamp;
     planEnd: Timestamp;
     findings: LargeString;
@@ -154,9 +153,8 @@ type Available: String enum{
 }
 
 entity TechnicianAssignment: cuid{
-    assignementID: String;
+    assignmentID: String;
     assignedAt: Timestamp;
-    assignedBy: String;
     assignmentStatus: AssignmentStatus;
     remarks: String;
     technician: Association to Technician;
@@ -202,7 +200,7 @@ entity PartConsumption: cuid{
     totalCost: Decimal;
     comsumptionStatus: ConsumptionStatus;
     consumedBy: Association to Technician;
-    workOrder: Association to WorkOrder;
+    // workOrder: Association to WorkOrder;
     operation: Association to WorkOrderOperation;
     spare: Association to SparePart;
 }
@@ -235,4 +233,5 @@ entity TimeConfirmation: cuid{
     startTime: Timestamp;
     endTime: Timestamp;
     findings: LargeString;
+    assigned: Association to TechnicianAssignment;
 }
