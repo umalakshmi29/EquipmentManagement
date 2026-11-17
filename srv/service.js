@@ -2,11 +2,11 @@ const cds = require('@sap/cds');
 const { SELECT, UPDATE, INSERT } = require('@sap/cds/lib/ql/cds-ql');
 
 module.exports = cds.service.impl(async function () {
-    const { Equipment, EquipmentLocation, MaintenancePlan, MaintenanceRequest, Technician, WorkOrder, WorkOrderOperation, TechnicianAssignment, SparePart, PartConsumption, TimeConfirmation } = this.entities;
+    const { Equipment, EquipmentLocation, MaintenancePlan, MaintenanceRequest, Technician, WorkOrder, WorkOrderOperation, TechnicianAssignment, SparePart, PartConsumption, TimeConfirmation, DowntimeEvent } = this.entities;
 
     //-------------------------------------------Equipment-------------------------------------------//
     this.before('CREATE', Equipment, async (req) => {
-        const { equipmentName, category, modelNumber, critical, equipmentStatus, warrantyStart, warrantyEnd } = req.data;
+        const { equipmentName, category, modelNumber, critical, equipmentStatus, warrantyStart, warrantyEnd, location_ID } = req.data;
         console.log(req.data);
 
         if (!equipmentName || !category || !modelNumber || !critical || !equipmentStatus || !warrantyStart || !warrantyEnd) {
@@ -172,7 +172,7 @@ module.exports = cds.service.impl(async function () {
         return await SELECT.one.from(WorkOrder).where({ ID: orderUUID })
     })
 
-  
+
     //----------------------------Maintainenace Request - Approve Action ----------------//
     this.on('ApproveRequest', MaintenanceRequest, async (req) => {
         const { ID } = req.params[0];
@@ -381,15 +381,136 @@ module.exports = cds.service.impl(async function () {
         await UPDATE(WorkOrder)
             .set({ approvalStatus: 'RELEASED' })
             .where({ ID });
-        const request = await SELECT.one.from(MaintenanceRequest)
-            .where({ ID: work.request_ID });
+        // const request = await SELECT.one.from(MaintenanceRequest)
+        //     .where({ ID: work.request_ID });
+        // console.log(request)
 
-        if (request?.equipment_ID) {
+        if (work.equipment_ID) {
             await UPDATE(Equipment)
                 .set({ equipmentStatus: 'UNDER_MAINTENANCE' })
-                .where({ ID: request.equipment_ID });
+                .where({ ID: work.equipment_ID });
         }
 
     })
 
+
+    //---------------------Confirm action -----------------------------//
+    this.on('confirmOperation', WorkOrderOperation, async (req) => {
+        const { ID } = req.params[0];
+        const { technicianID, startTime,endTime, findings} = req.data;
+        const operation = await SELECT.one.from(WorkOrderOperation).where({ ID });
+        if (!operation) {
+            return req.error(404, 'Operation Work order not found');
+        }
+        if (operation.operationStatus !== 'IN_PROGRESS') {
+            return req.error(400, 'Only In-Progress can be changed to completed');
+        }
+
+        const work = await SELECT.one.from(WorkOrder)
+            .where({ ID: operation.workOrder_ID });
+
+        console.log(work);
+
+        if (work.approvalStatus !== 'RELEASED') {
+            return req.error(400, 'Only released Work Orders can be confirmed');
+        }
+
+
+        if (new Date(endTime) <= new Date(startTime)) {
+            return req.error(400, 'End time must be after start time');
+        }
+
+        const assignment = await SELECT.one.from(TechnicianAssignment)
+            .where({
+                operation_ID: ID,
+                technician_ID: technicianID,
+                assignmentStatus: 'ACCEPTED'
+            });
+        console.log(assignment);
+        if (!assignment) {
+            return req.error(400, 'No active assignment found for this technician and operation');
+        }
+
+        const lastConfirmation = await SELECT.one.from(TimeConfirmation)
+            .columns('confirmationID')
+            .orderBy('confirmationID desc');
+
+        const nextNumber = lastConfirmation?.confirmationID
+            ? parseInt(lastConfirmation.confirmationID.split('-')[1], 10) + 1
+            : 1;
+
+        const confirmationUUID = cds.utils.uuid();
+
+        await INSERT.into(TimeConfirmation).entries({
+            ID: confirmationUUID,
+            confirmationID: `CN-${String(nextNumber).padStart(3, '0')}`,
+            startTime,
+            endTime,
+            findings,
+            assigned_ID: assignment.ID
+        });
+
+        // await UPDATE(WorkOrderOperation)
+        //     .set({
+        //         operationStatus: 'COMPLETED'
+        //     })
+        //     .where({ ID});
+
+        await UPDATE(TechnicianAssignment)
+            .set({ assignmentStatus: 'COMPLETED' })
+            .where({ ID: assignment.ID });
+    });
+
+    this.on('completeOrder', WorkOrderOperation, async (req) => {
+        const { ID } = req.params[0];
+        const work = await SELECT.one.from(WorkOrderOperation).where({ ID });
+        if (!work) {
+            return req.error(404, 'Work Order Operation not found');
+        }
+
+        if (work.operationStatus !== 'IN_PROGRESS') {
+            return req.error(400, 'Only IN_PROGRESS Work Orders can be completed');
+        }
+
+        // const operations = await SELECT.from(WorkOrderOperation)
+        //     .where({ workOrder_ID: ID });
+
+        // if (!operations.length) {
+        //     return req.error(400, 'Work Order has no operations');
+        // }
+
+        // const unfinished = operations.filter(op =>
+        //     !['COMPLETED', 'SKIPPED'].includes(op.operationStatus)
+        // );
+
+        // if (unfinished.length) {
+        //     return req.error(
+        //         400,
+        //         `${unfinished.length} operation(s) are still pending`
+        //     );
+        // }
+
+        // const actualHours = operations.reduce(
+        //     (total, op) => total + Number(op.actualHours || 0),
+        //     0
+        // );
+
+        await UPDATE(WorkOrderOperation)
+            .set({
+                operationStatus: 'COMPLETED',
+                completedAt: new Date().toISOString(),
+                closedAt: new Date().toISOString()
+            })
+            .where({ ID });
+
+        if (work.equipment_ID) {
+            await UPDATE(Equipment)
+                .set({
+                    equipmentStatus: 'ACTIVE',
+                    lastMaintenanceDate:
+                        new Date().toISOString().slice(0, 10)
+                })
+                .where({ ID: work.equipment_ID });
+        }
+    });
 })

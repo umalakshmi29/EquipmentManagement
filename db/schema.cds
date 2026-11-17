@@ -1,237 +1,247 @@
 namespace em;
+
 using {cuid} from '@sap/cds/common';
 
-entity Equipment: cuid{
-    equipmentID: String;
-    equipmentName: String;
-    category: String;
-    modelNumber: String;
-    critical: Criticality;
-    equipmentStatus: EStatus;
-    warrantyStart: Date;
-    warrantyEnd: Date;
-    installationDate: Date;
-    purchaseDate: Date;
-    lastMaintainenceDate: Date;
-    nextMaintainenceDate: Date;
-    location: Association to EquipmentLocation;
+entity Equipment : cuid {
+    equipmentID          : String;
+    equipmentName        : String;
+    category             : String;
+    modelNumber          : String;
+    critical             : Criticality;
+    equipmentStatus      : EStatus;
+    warrantyStart        : Date;
+    warrantyEnd          : Date;
+    installationDate     : Date;
+    purchaseDate         : Date;
+    lastMaintainenceDate : Date;
+    nextMaintainenceDate : Date;
+    location             : Association to EquipmentLocation;
 }
 
-type Criticality: String enum{
+type Criticality       : String enum {
     LOW;
     MEDIUM;
     HIGH;
     CRITICAL;
 }
- 
-type EStatus: String enum{
+
+type EStatus           : String enum {
     ACTIVE;
     INACTIVE;
     UNDER_MAINTENANCE;
 }
 
-entity EquipmentLocation: cuid{
-    locationID: String;
-    locationName: String;
-    plantCode: String;
-    floor: String;
-    section: String;
-    isActive: Boolean;
-}
-entity MaintenancePlan: cuid{
-    planID: String;
-    planName: String;
-    schedulingType: Schedule;
-    intervalValue: Integer;
-    gracePeriod: Integer;
-    isActive: Boolean;
-    equipment: Association to Equipment;
+entity EquipmentLocation : cuid {
+    locationID   : String;
+    locationName : String;
+    plantCode    : String;
+    floor        : String;
+    section      : String;
+    isActive     : Boolean;
 }
 
-entity MaintenanceRequest: cuid{
-    requestID: String;
-    requestType: RequestType;
-    priority: Criticality;
-    safetyImpact: Boolean;
-    productImpact: Criticality;
-    // findinds: LargeString;
-    requestStatus: RequestStatus 
-                   default #SUBMITTED;
-    equipment: Association to Equipment;
+entity MaintenancePlan : cuid {
+    planID         : String;
+    planName       : String;
+    schedulingType : Schedule;
+    intervalValue  : Integer;
+    gracePeriod    : Integer;
+    isActive       : Boolean;
+    equipment      : Association to Equipment;
 }
 
-type Schedule: String enum{
+entity MaintenanceRequest : cuid {
+    requestID     : String;
+    requestType   : RequestType;
+    priority      : Criticality;
+    safetyImpact  : Boolean;
+    productImpact : Criticality;
+    findinds: LargeString;
+    requestStatus : RequestStatus default #SUBMITTED;
+    equipment     : Association to Equipment;
+}
+
+type Schedule          : String enum {
     TIME_BASED;
     USAGE_BASED;
 }
- 
-type RequestType: String enum{
+
+type RequestType       : String enum {
     BREAKDOWN;
     PREVENTIVE;
 }
 
-type RequestStatus: String enum{
+type RequestStatus     : String enum {
     SUBMITTED;
     APPROVED;
     REJECTED;
 }
 
-entity WorkOrder: cuid{
-    orderID: String;
-    orderType: RequestType;
-    priority: Criticality;
-    plannedHours: Decimal;
-    actualHours: Decimal;
-    estimatedCost: Decimal;
-    actualCost: Decimal;
-    approvalStatus: Status default #PENDING;
-    completedAt: Timestamp;
-    closedAt: Timestamp;
-    request: Association to MaintenanceRequest;
-    operations : Composition of many WorkOrderOperation
-                 on operations.workOrder = $self;
-
+entity WorkOrder : cuid {
+    orderID         : String;
+    orderType       : RequestType;
+    priority        : Criticality;
+    plannedHours    : Decimal;
+    actualHours     : Decimal;
+    estimatedCost   : Decimal;
+    actualCost      : Decimal;
+    approvalStatus  : Status default #PENDING;
+    workOrderStatus : WorkOrderStatus default #CREATED;
+    completedAt     : Timestamp;
+    closedAt        : Timestamp;
+    equipment : Association to Equipment;
+    request         : Association to MaintenanceRequest;
+    maintenancePlan  : Association to MaintenancePlan;
+    operations      : Composition of many WorkOrderOperation
+                          on operations.workOrder = $self;
 }
 
-type Status: String enum{
+type WorkOrderStatus   : String enum {
+    CREATED;
+    RELEASED;
+    IN_PROGRESS;
+    COMPLETED;
+    CANCELLED;
+}
+
+type Status            : String enum {
     PENDING;
     APPROVED;
     REJECTED;
-    RELEASED;
 }
 
-entity WorkOrderOperation: cuid{
-    operationID: String;
-    operationName: String;
-    operationType: OperationType;
-    plannedHours: Decimal;
-    actualHours: Decimal;
-    operationStatus: OperationStatus default #PENDING;
-    planStart: Timestamp;
-    planEnd: Timestamp;
-    findings: LargeString;
-    workOrder: Association to WorkOrder;
-    technician: Association to Technician;
+entity WorkOrderOperation : cuid {
+    operationID     : String;
+    operationName   : String;
+    operationType   : OperationType;
+    plannedHours    : Decimal;
+    actualHours     : Decimal;
+    operationStatus : OperationStatus default #PENDING;
+    planStart       : Timestamp;
+    planEnd         : Timestamp;
+    findings        : LargeString;
+    workOrder       : Association to WorkOrder;
+    technician      : Association to Technician;
 }
 
-type OperationType: String enum{
+type OperationType     : String enum {
     INSPECTION;
     REPAIR;
     TESTING;
 }
 
-type OperationStatus: String enum{
+type OperationStatus   : String enum {
     PENDING;
     IN_PROGRESS;
     COMPLETED;
     SKIPPED;
 }
 
-annotate Technician with @assert.unique.phone: [ phone];
-annotate Technician with @assert.unique.email: [ email];
-entity Technician: cuid{
-    empCode: String;
-    name: String;
-    email: String;
-    phone: String;
-    availableStatus: Available;
-    skillLevel: Level;
-    specialization: String;
-    isActive: Boolean;
+annotate Technician with @assert.unique.phone: [phone];
+annotate Technician with @assert.unique.email: [email];
+
+entity Technician : cuid {
+    empCode         : String;
+    name            : String;
+    email           : String;
+    phone           : String;
+    availableStatus : Available;
+    skillLevel      : Level;
+    specialization  : String;
+    isActive        : Boolean;
 }
 
-type Level: String enum{
+type Level             : String enum {
     JUNIOR;
     SENIOR;
     EXPERT;
 }
 
-type Available: String enum{
+type Available         : String enum {
     AVAILABLE;
     BUSY;
     ON_LEAVE;
 }
 
-entity TechnicianAssignment: cuid{
-    assignmentID: String;
-    assignedAt: Timestamp;
-    assignmentStatus: AssignmentStatus;
-    remarks: String;
-    technician: Association to Technician;
-    workOrder: Association to WorkOrder;
-    operation: Association to WorkOrderOperation;
+entity TechnicianAssignment : cuid {
+    assignmentID     : String;
+    assignedAt       : Timestamp;
+    assignmentStatus : AssignmentStatus;
+    remarks          : String;
+    technician       : Association to Technician;
+    workOrder        : Association to WorkOrder;
+    operation        : Association to WorkOrderOperation;
 }
 
-type AssignmentStatus: String enum{
+type AssignmentStatus  : String enum {
     ASSIGNED;
     ACCEPTED;
     IN_PROGRESS;
     COMPLETED;
-    REASSIGNED;
 }
 
-entity SparePart: cuid{
-    partID: String;
-    partName: String;
-    category: Category;
-    availableQuantity: Decimal;
-    reservedQuantity: Decimal;
-    unitPrice: Decimal;
-    currency: Currency;
-    storageLocation: String;
-    isActive: Boolean;
+entity SparePart : cuid {
+    partID            : String;
+    partName          : String;
+    category          : Category;
+    availableQuantity : Decimal;
+    reservedQuantity  : Decimal;
+    unitPrice         : Decimal;
+    currency          : Currency;
+    storageLocation   : String;
+    isActive          : Boolean;
 }
 
-type Category: String enum{
+type Category          : String enum {
     ELECTRICAL;
     MECHANICAL;
 }
 
-type Currency: String enum{
+type Currency          : String enum {
     INR;
     USD;
     EUR;
 }
 
-entity PartConsumption: cuid{
-    consumptionID: String;
-    consumedQuantity: Decimal;
-    unitPrice: Decimal;
-    totalCost: Decimal;
-    comsumptionStatus: ConsumptionStatus;
-    consumedBy: Association to Technician;
+entity PartConsumption : cuid {
+    consumptionID     : String;
+    consumedQuantity  : Decimal;
+    unitPrice         : Decimal;
+    totalCost         : Decimal;
+    comsumptionStatus : ConsumptionStatus;
+    consumedBy        : Association to Technician;
     // workOrder: Association to WorkOrder;
-    operation: Association to WorkOrderOperation;
-    spare: Association to SparePart;
+    operation         : Association to WorkOrderOperation;
+    spare             : Association to SparePart;
 }
 
-type ConsumptionStatus: String enum{
+type ConsumptionStatus : String enum {
     RESERVED;
     CONSUMED;
     RETURNED;
 }
 
-entity DowntimeEvent: cuid{
-    eventID: String;
-    downTimeType: DownType;
-    startDate: Date;
-    endDate: Date;
-    duration: Decimal;
-    reason: LargeString;
-    impactLevel: Criticality;
-    equipment: Association to Equipment;
+entity DowntimeEvent : cuid {
+    eventID      : String;
+    downTimeType : DownType;
+    startDate    : Date;
+    endDate      : Date;
+    duration     : Decimal;
+    reason       : LargeString;
+    impactLevel  : Criticality;
+    equipment    : Association to Equipment;
 }
 
-type DownType: String enum{
+type DownType          : String enum {
     BREAKDOWN;
     PLANNED_MAINTENANCE;
 }
 
-entity TimeConfirmation: cuid{
-    confirmationID: String;
-    workDate: Date;
-    startTime: Timestamp;
-    endTime: Timestamp;
-    findings: LargeString;
-    assigned: Association to TechnicianAssignment;
+entity TimeConfirmation : cuid {
+    confirmationID : String;
+    workDate       : Date;
+    startTime      : Timestamp;
+    endTime        : Timestamp;
+    findings       : LargeString;
+    assigned       : Association to TechnicianAssignment;
 }

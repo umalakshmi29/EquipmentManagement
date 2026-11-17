@@ -8,17 +8,22 @@ service EquipmentManagement{
         action createPreventiveOrder() returns WorkOrder;
     };
     entity MaintenanceRequest as projection on em.MaintenanceRequest actions{
-        action ApproveRequest(ID:UUID);
-        action RejectRequest(ID:UUID);
+        action ApproveRequest();
+        action RejectRequest();
     };
     entity WorkOrder as projection on em.WorkOrder actions{
-        action ApproveWork(ID:UUID);
-        action RejectWork(ID:UUID);
+        action ApproveWork();
+        action RejectWork();
         action releaseOrder();
     };
 
     entity WorkOrderOperation as projection on em.WorkOrderOperation actions{
         action assignTechnician(technicianID : UUID, workID: UUID) returns TechnicianAssignment;
+        action confirmOperation(
+            technicianID: UUID, startTime: Timestamp, endTime: Timestamp, findings: LargeString
+        ) returns TimeConfirmation;
+        action completeOrder();
+
     };
     entity Technician as projection on em.Technician;
     entity TechnicianAssignment as projection on em.TechnicianAssignment actions{
